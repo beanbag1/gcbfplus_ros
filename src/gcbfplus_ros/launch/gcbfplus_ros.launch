@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="gcbfplus_ros" name="gcbfplus_ros" type="simulate.py" output="screen"/>
+</launch>
