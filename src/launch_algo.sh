@@ -12,7 +12,9 @@ source /opt/ros/noetic/setup.bash && cd /root/ros_ws && catkin_make \
 # source src/gcbfplus_ros/.venv/bin/activate
 # roslaunch gcbfplus_ros gcbfplus_ros.launch &
 source src/gcbfplus_ros/.venv/bin/activate
-python3 src/gcbfplus_ros/src/simulate.py --path ~/ros_ws/src/gcbfplus_ros/pretrained/LinearDrone/gcbf+ &
+# python3 src/gcbfplus_ros/src/simulate.py --path ~/ros_ws/src/gcbfplus_ros/pretrained/LinearDrone/gcbf+ &
+python3 src/gcbfplus_ros/src/simulate.py --path ~/ros_ws/src/gcbfplus_ros/pretrained/DoubleIntegrator/gcbf+ &
+# python3 src/gcbfplus_ros/src/simulate.py --path ~/ros_ws/src/gcbfplus_ros/pretrained/seed0_20231123001301 &
 
 # Wait for algorithm to be ready
 # TODO: Update to something algorithm specific

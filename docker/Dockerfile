@@ -102,6 +102,11 @@ RUN pip install flax>=0.7.2 \
 
 RUN pip install git+https://github.com/oswinso/jaxproxqp.git 
 
+RUN pip uninstall em
+RUN pip install empy==3.3.4
+
+RUN pip install point-cloud-utils
+
 # RUN pip install -e
 
 RUN mkdir -p /home/$USERNAME/ros_ws/src

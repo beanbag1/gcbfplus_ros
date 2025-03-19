@@ -177,10 +177,10 @@ class GCBFPlus(GCBF):
         if params is None:
             params = self.actor_train_state.params
         # jax.debug.print("states: {a}", a=graph.states)
-        jax.debug.print("actor: {a}", a=2*self.actor.get_action(self.actor_train_state.params, graph))
-        jax.debug.print("ref: {a}", a=self._env.u_ref(graph))
-        action = 2 * self.actor.get_action(self.actor_train_state.params, graph) + self._env.u_ref(graph)
-        # action = 100 * self.actor.get_action(self.actor_train_state.params, graph)
+        actor = 2 * self.actor.get_action(params, graph)
+        ref = self._env.u_ref(graph)
+        # jax.debug.print("actor: {a}", a=actor)
+        action = actor + ref
         return action
 
     def step(self, graph: GraphsTuple, key: PRNGKey, params: Optional[Params] = None) -> Tuple[Action, Array]:

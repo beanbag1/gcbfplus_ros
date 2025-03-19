@@ -47,7 +47,7 @@ class DoubleIntegrator(MultiAgentEnv):
             area_size: float,
             max_step: int = 256,
             max_travel: float = None,
-            dt: float = 0.03,
+            dt: float = 0.1,
             params: dict = None
     ):
         super(DoubleIntegrator, self).__init__(num_agents, area_size, max_step, max_travel, dt, params)
@@ -221,8 +221,7 @@ class DoubleIntegrator(MultiAgentEnv):
         )
 
     def edge_blocks(self, state: EnvState, lidar_data: State) -> list[EdgeBlock]:
-        n_hits = self._params["n_rays"] * self.num_agents
-
+        n_hits = self.n_rays * self.num_agents
         # agent - agent connection
         agent_pos = state.agent[:, :2]
         pos_diff = agent_pos[:, None, :] - agent_pos[None, :, :]  # [i, j]: i -> j
@@ -237,11 +236,11 @@ class DoubleIntegrator(MultiAgentEnv):
         id_goal = jnp.arange(self.num_agents, self.num_agents * 2)
         agent_goal_mask = jnp.eye(self.num_agents)
         agent_goal_feats = state.agent[:, None, :] - state.goal[None, :, :]
-        feats_norm = jnp.sqrt(1e-6 + jnp.sum(agent_goal_feats[:, :2] ** 2, axis=-1, keepdims=True))
+        feats_norm = jnp.sqrt(1e-6 + jnp.sum(agent_goal_feats[:, :, :2] ** 2, axis=-1, keepdims=True))
         comm_radius = self._params["comm_radius"]
         safe_feats_norm = jnp.maximum(feats_norm, comm_radius)
         coef = jnp.where(feats_norm > comm_radius, comm_radius / safe_feats_norm, 1.0)
-        agent_goal_feats = agent_goal_feats.at[:, :2].set(agent_goal_feats[:, :2] * coef)
+        agent_goal_feats = agent_goal_feats.at[:, :, :2].set(agent_goal_feats[:, :, :2] * coef)
         agent_goal_edges = EdgeBlock(
             agent_goal_feats, agent_goal_mask, id_agent, id_goal
         )
@@ -250,12 +249,12 @@ class DoubleIntegrator(MultiAgentEnv):
         id_obs = jnp.arange(self.num_agents * 2, self.num_agents * 2 + n_hits)
         agent_obs_edges = []
         for i in range(self.num_agents):
-            id_hits = jnp.arange(i * self._params["n_rays"], (i + 1) * self._params["n_rays"])
+            id_hits = jnp.arange(i * self.n_rays, (i + 1) * self.n_rays)
             lidar_pos = agent_pos[i, :] - lidar_data[id_hits, :2]
             lidar_feats = state.agent[i, :] - lidar_data[id_hits, :]
             lidar_dist = jnp.linalg.norm(lidar_pos, axis=-1)
             active_lidar = jnp.less(lidar_dist, self._params["comm_radius"] - 1e-1)
-            agent_obs_mask = jnp.ones((1, self._params["n_rays"]))
+            agent_obs_mask = jnp.ones((1, self.n_rays))
             agent_obs_mask = jnp.logical_and(agent_obs_mask, active_lidar)
             agent_obs_edges.append(
                 EdgeBlock(lidar_feats[None, :, :], agent_obs_mask, id_agent[i][None], id_obs[id_hits])
@@ -285,9 +284,9 @@ class DoubleIntegrator(MultiAgentEnv):
 
         return graph._replace(edges=edge_feats, states=state)
 
-    def get_graph(self, state: EnvState, adjacency: Array = None) -> GraphsTuple:
+    def get_graph(self, state: EnvState, lidar_data, adjacency: Array = None) -> GraphsTuple:
         # node features
-        n_hits = self._params["n_rays"] * self.num_agents
+        n_hits = self.n_rays * self.num_agents
         n_nodes = 2 * self.num_agents + n_hits
         node_feats = jnp.zeros((self.num_agents * 2 + n_hits, 3))
         node_feats = node_feats.at[: self.num_agents, 2].set(1)  # agent feats
@@ -298,17 +297,17 @@ class DoubleIntegrator(MultiAgentEnv):
         node_type = node_type.at[self.num_agents: self.num_agents * 2].set(DoubleIntegrator.GOAL)
         node_type = node_type.at[-n_hits:].set(DoubleIntegrator.OBS)
 
-        get_lidar_vmap = jax_vmap(
-            ft.partial(
-                get_lidar,
-                obstacles=state.obstacle,
-                num_beams=self._params["n_rays"],
-                sense_range=self._params["comm_radius"],
-            )
-        )
-        lidar_data = merge01(get_lidar_vmap(state.agent[:, :2]))
-        lidar_data = jnp.concatenate([lidar_data, jnp.zeros_like(lidar_data)], axis=-1)
-        edge_blocks = self.edge_blocks(state, lidar_data)
+        # get_lidar_vmap = jax_vmap(
+        #     ft.partial(
+        #         get_lidar,
+        #         obstacles=state.obstacle,
+        #         num_beams=self._params["n_rays"],
+        #         sense_range=self._params["comm_radius"],
+        #     )
+        # )
+        # lidar_data = merge01(get_lidar_vmap(state.agent[:, :2]))
+        concat_lidar_data = jnp.concatenate([lidar_data, jnp.zeros_like(lidar_data)], axis=-1)
+        edge_blocks = self.edge_blocks(state, concat_lidar_data)
 
         # create graph
         return GetGraph(
@@ -316,7 +315,7 @@ class DoubleIntegrator(MultiAgentEnv):
             node_type=node_type,
             edge_blocks=edge_blocks,
             env_states=state,
-            states=jnp.concatenate([state.agent, state.goal, lidar_data], axis=0),
+            states=jnp.concatenate([state.agent, state.goal, concat_lidar_data], axis=0),
         ).to_padded()
 
     def state_lim(self, state: Optional[State] = None) -> Tuple[State, State]:
@@ -335,6 +334,7 @@ class DoubleIntegrator(MultiAgentEnv):
         error = goal - agent
         error_max = jnp.abs(error / jnp.linalg.norm(error, axis=-1, keepdims=True) * self._params["comm_radius"])
         error = jnp.clip(error, -error_max, error_max)
+        # jax.debug.print("error: {a}", a=error)
         return self.clip_action(error @ self._K.T)
 
     def forward_graph(self, graph: GraphsTuple, action: Action) -> GraphsTuple:

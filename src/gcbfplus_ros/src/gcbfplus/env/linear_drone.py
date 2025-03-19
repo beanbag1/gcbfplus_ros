@@ -37,7 +37,7 @@ class LinearDrone(MultiAgentEnv):
 
     PARAMS = {
         "drone_radius": 0.05,
-        "comm_radius": 0.5,
+        "comm_radius": 100,
         "n_rays": 32,
         "obs_len_range": [0.15, 0.3],
         "n_obs": 4
@@ -247,9 +247,7 @@ class LinearDrone(MultiAgentEnv):
         for i in range(self.num_agents):
             id_hits = jnp.arange(i * self.n_rays, (i + 1) * self.n_rays)
             lidar_pos = agent_pos[i, :] - lidar_data[id_hits, :3]
-            globals.print_time_elapsed()
             lidar_feats = state.agent[i, :] - lidar_data[id_hits, :]
-            globals.print_time_elapsed()
             lidar_dist = jnp.linalg.norm(lidar_pos, axis=-1)
             active_lidar = jnp.less(lidar_dist, self._params["comm_radius"] - 1e-1)
             agent_obs_mask = jnp.ones((1, self.n_rays))
@@ -257,8 +255,6 @@ class LinearDrone(MultiAgentEnv):
             agent_obs_edges.append(
                 EdgeBlock(lidar_feats[None, :, :], agent_obs_mask, id_agent[i][None], id_obs[id_hits])
             )
-        globals.print_time_elapsed()
-
         return [agent_agent_edges, agent_goal_edges] + agent_obs_edges
 
     def control_affine_dyn(self, state: State) -> [Array, Array]:
@@ -283,7 +279,7 @@ class LinearDrone(MultiAgentEnv):
 
         return graph._replace(edges=edge_feats, states=state)
 
-    def get_graph(self, state: EnvState, adjacency: Array = None) -> GraphsTuple:
+    def get_graph(self, state: EnvState, lidar_data, adjacency: Array = None) -> GraphsTuple:
         # node features
         n_hits = self.n_rays * self.num_agents
         n_nodes = 2 * self.num_agents + n_hits
@@ -294,9 +290,7 @@ class LinearDrone(MultiAgentEnv):
 
         node_type = jnp.zeros(n_nodes, dtype=jnp.int32)
         node_type = node_type.at[self.num_agents: self.num_agents * 2].set(LinearDrone.GOAL)
-        globals.print_time_elapsed()
         node_type = node_type.at[-n_hits:].set(LinearDrone.OBS)
-        globals.print_time_elapsed("in get graph")
 
         # get_lidar_vmap = jax.vmap(
         #     ft.partial(
@@ -312,9 +306,10 @@ class LinearDrone(MultiAgentEnv):
         # print(jnp.shape(vmap_lidar_data))
 
         # lidar_data = globals.lidar_data
-        lidar_data = jnp.concatenate([globals.lidar_data, jnp.zeros_like(globals.lidar_data)], axis = -1)
-        # takes ~700ms
-        edge_blocks = self.edge_blocks(state, lidar_data)
+        concat_lidar_data = jnp.concatenate([lidar_data, jnp.zeros_like(lidar_data)], axis = -1)
+        # jax.debug.print("lidar: {a}", a=concat_lidar_data)
+        edge_blocks = self.edge_blocks(state, concat_lidar_data)
+        # print(edge_blocks)
         # jax.debug.print("agent: {a}", a=state.agent)
         # jax.debug.print("goal: {a}", a=state.goal)
         # jax.debug.print("lidar: {a}", a=lidar_data)
@@ -325,7 +320,7 @@ class LinearDrone(MultiAgentEnv):
             node_type=node_type,
             edge_blocks=edge_blocks,
             env_states=state,
-            states=jnp.concatenate([state.agent, state.goal, lidar_data], axis=0),
+            states=jnp.concatenate([state.agent, state.goal, concat_lidar_data], axis=0),
         ).to_padded()
 
     def state_lim(self, state: Optional[State] = None) -> Tuple[State, State]:

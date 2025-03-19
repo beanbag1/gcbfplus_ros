@@ -12,3 +12,5 @@ test_log.csv
 .vscode/
 .catkin_tools/
 .catkin_workspace
+build/
+devel/
