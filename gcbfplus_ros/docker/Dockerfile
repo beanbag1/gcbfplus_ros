@@ -16,6 +16,8 @@ python3.10 \
 python3.10-venv \
 python3.10-distutils
 
+RUN mkdir -p /home/$USERNAME/ros_ws/src
+
 RUN python3.10 -m venv ~/ros_ws/src/gcbfplus_ros/.venv
 ENV PATH="~/ros_ws/src/gcbfplus_ros/.venv/bin:$PATH"
 RUN echo "source ~/ros_ws/src/gcbfplus_ros/.venv/bin/activate" >> ~/.bashrc
@@ -81,8 +83,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt 
 
 # RUN pip install -e
-
-RUN mkdir -p /home/$USERNAME/ros_ws/src
 
 #testing!
 # RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
