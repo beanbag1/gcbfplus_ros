@@ -1,0 +1,7 @@
+wheel
+pyopengl==3.1.0
+numpy
+trimesh
+matplotlib
+mesh_to_sdf
+python-csv

@@ -1,0 +1,84 @@
+networks:
+  ros-network:
+    driver: bridge
+
+services:
+  roscore_container:
+      image: "ros:noetic-ros-base-focal"
+      environment:
+        - DISPLAY=${DISPLAY}
+        - QT_X11_NO_MITSHM=1
+      command: ["roscore"]
+      networks:
+        - ros-network
+
+  sim_container:
+    build: 
+      context: ${SIM_PATH}
+      dockerfile: Dockerfile
+    # container_name: sim_container
+    depends_on:
+      - roscore_container # wait for roscore to start up
+      - algo_container # wait for algo to start up
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - "ROS_MASTER_URI=http://roscore_container:11311"
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${HOME}/.Xauthority:/root/.Xauthority:rw
+      - ${SIM_PATH}/..:/root/ros_ws
+      - ../src/scripts/sim_scripts/:/root/eval_scripts
+      - ../src/scripts/rosbags/:/root/rosbags
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    privileged: true  # Equivalent to --privileged in docker run
+    runtime: nvidia  # Required for GPU support
+    stdin_open: true  # Equivalent to -it (interactive terminal)
+    # init: true
+    tty: true  # Keeps the container open
+    entrypoint: ["/bin/bash", "/root/ros_ws/docker/launch_sim.sh"]  # Set entrypoint to the launch script
+    command: ["0", "0", "0", "0", "xxx", "0", "0", "0"]
+    stop_signal: SIGINT  # Send SIGINT to gracefully stop rosbag and other processes
+    stop_grace_period: 30s       # Allow up to 30 seconds for the processes to shut down
+    networks:
+      - ros-network
+
+  algo_container:
+    build: 
+      context: ${ALGO_PATH}
+      dockerfile: Dockerfile
+    depends_on:
+      - roscore_container # wait for roscore to start up
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      # - NVIDIA_VISIBLE_DEVICES=all
+      # - NVIDIA_DRIVER_CAPABILITIES=all
+      - "ROS_MASTER_URI=http://roscore_container:11311"
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${HOME}/.Xauthority:/root/.Xauthority:rw
+      - ${ALGO_PATH}/..:/root/ros_ws
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    privileged: true  # Equivalent to --privileged in docker run
+    runtime: nvidia  # Required for GPU support
+    stdin_open: true  # Equivalent to -it (interactive terminal)
+    tty: true  # Keeps the container open
+    entrypoint: ["/bin/bash", "/root/ros_ws/src/launch_algo.sh"]  # Set entrypoint to the launch script
+    command: ["1"]
+    networks:
+      - ros-network

@@ -1,0 +1,6 @@
+services:
+  sim_container:
+    # init x, y, z, yaw, map, waypoints
+    command: ["test", "1", "4", ]
+  algo_container:
+    command: ["4"]

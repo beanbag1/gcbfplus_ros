@@ -1,0 +1,237 @@
+<launch>
+    <arg name="use_gpu_" value="false"/>
+    <arg name="drone_num" default="1"/>
+    <arg name="frame_id" value="world"/>
+    <arg name="global_cloud_topic" value="/map_generator/global_cloud"/>
+    <arg name="odom_topic" value="/odom"/>
+    <arg name="map" default="small_forest01cutoff"/>
+    <arg name="map_name" value="$(find map_generator)/resource/$(arg map).pcd"/>
+    <arg name="downsample_resolution" value="0.05"/>
+    <arg name="use_uav_extra_model" value = "1"/>
+    <arg name="init_x_0" default="0.0"/>
+    <arg name="init_y_0" default="0.0"/>
+    <arg name="init_z_0" default="1.0"/>
+    <arg name="init_yaw_0" default="0.0"/>
+    <arg name="init_x_1" default="0.0"/>
+    <arg name="init_y_1" default="0.0"/>
+    <arg name="init_z_1" default="1.0"/>
+    <arg name="init_yaw_1" default="0.0"/>
+    <arg name="init_x_2" default="0.0"/>
+    <arg name="init_y_2" default="0.0"/>
+    <arg name="init_z_2" default="1.0"/>
+    <arg name="init_yaw_2" default="0.0"/>
+    <arg name="init_x_3" default="0.0"/>
+    <arg name="init_y_3" default="0.0"/>
+    <arg name="init_z_3" default="1.0"/>
+    <arg name="init_yaw_3" default="0.0"/>
+    <arg name="init_x_4" default="0.0"/>
+    <arg name="init_y_4" default="0.0"/>
+    <arg name="init_z_4" default="1.0"/>
+    <arg name="init_yaw_4" default="0.0"/>
+    <arg name="init_x_5" default="0.0"/>
+    <arg name="init_y_5" default="0.0"/>
+    <arg name="init_z_5" default="1.0"/>
+    <arg name="init_yaw_5" default="0.0"/>
+    <arg name="init_x_6" default="0.0"/>
+    <arg name="init_y_6" default="0.0"/>
+    <arg name="init_z_6" default="1.0"/>
+    <arg name="init_yaw_6" default="0.0"/>
+    <arg name="init_x_7" default="0.0"/>
+    <arg name="init_y_7" default="0.0"/>
+    <arg name="init_z_7" default="1.0"/>
+    <arg name="init_yaw_7" default="0.0"/>
+    
+    <node pkg="map_generator" name="map_pub" type="map_pub" output="screen"
+         args="$(arg map_name)">
+        <param name="add_boundary" value="0"/>
+        <param name="is_bridge" value="0"/>
+        <param name="downsample_res" value="0.1"/>         
+        <param name="map_offset_x" value="0.0"/>   
+        <param name="map_offset_y" value="0.0"/>   
+        <param name="map_offset_z" value="0.0"/>   
+   </node>
+
+    <group if="$(arg use_gpu_)">
+        <node pkg="map_generator" name="map_pub1" type="map_pub" output="screen"
+                args="$(arg map_name)">
+                <param name="downsample_res" value="0.1"/>         
+                <param name="map_offset_x" value="0.0"/>   
+                <param name="map_offset_y" value="0.0"/>   
+                <param name="map_offset_z" value="0.0"/>   
+        </node>  
+    </group>
+    
+    <group unless="$(arg use_gpu_)">
+        <node pkg="map_generator" name="map_pub2" type="map_pub" output="screen"
+                args="$(arg map_name)">
+                <param name="downsample_res" value="$(arg downsample_resolution)"/>
+                <param name="map_offset_x" value="0.0"/>   
+                <param name="map_offset_y" value="0.0"/>   
+                <param name="map_offset_z" value="0.0"/>   
+        </node>  
+    </group>
+
+    <include file="$(find test_interface)/launch/single_drone_refactored.xml" if="$(eval drone_num > 0)">
+        <arg name="drone_id" value="0"/>
+        <arg name="uav_num_" value="$(arg drone_num)"/>
+        <!-- change this -->
+        <!-- possible lidar types: os128, avia, mid360 -->
+        <arg name="lidar_type" value="os128"/>
+        <!-- <arg name="lidar_type" value="avia"/> -->
+        <!-- <arg name="lidar_type" value="mid360"/> -->
+        <!-- end change this -->
+        <arg name="init_x_" value="$(arg init_x_0)"/>
+        <arg name="init_y_" value="$(arg init_y_0)"/>
+        <arg name="init_z_" value="$(arg init_z_0)"/>
+        <arg name="init_yaw" value="$(arg init_yaw_0)"/>
+        <arg name="map_name_" value="$(arg map_name)"/>
+        <arg name="downsample_resolution_" value="$(arg downsample_resolution)"/>
+        <arg name="odom_topic" value="$(arg odom_topic)"/>
+        <arg name="use_gpu" value="$(arg use_gpu_)"/>
+        <arg name="use_uav_extra_model_" value="$(arg use_uav_extra_model)"/>
+    </include>
+
+    <include file="$(find test_interface)/launch/single_drone_refactored.xml" if="$(eval drone_num > 1)">
+        <arg name="drone_id" value="1"/>
+        <arg name="uav_num_" value="$(arg drone_num)"/>
+        <!-- change this -->
+        <!-- possible lidar types: os128, avia, mid360 -->
+        <arg name="lidar_type" value="os128"/>
+        <!-- <arg name="lidar_type" value="avia"/> -->
+        <!-- <arg name="lidar_type" value="mid360"/> -->
+        <!-- end change this -->
+        <arg name="init_x_" value="$(arg init_x_1)"/>
+        <arg name="init_y_" value="$(arg init_y_1)"/>
+        <arg name="init_z_" value="$(arg init_z_1)"/>
+        <arg name="init_yaw" value="$(arg init_yaw_1)"/>
+        <arg name="map_name_" value="$(arg map_name)"/>
+        <arg name="downsample_resolution_" value="$(arg downsample_resolution)"/>
+        <arg name="odom_topic" value="$(arg odom_topic)"/>
+        <arg name="use_gpu" value="$(arg use_gpu_)"/>
+        <arg name="use_uav_extra_model_" value="$(arg use_uav_extra_model)"/>
+    </include>
+
+    <include file="$(find test_interface)/launch/single_drone_refactored.xml" if="$(eval drone_num > 2)">
+        <arg name="drone_id" value="2"/>
+        <arg name="uav_num_" value="$(arg drone_num)"/>
+        <!-- change this -->
+        <!-- possible lidar types: os128, avia, mid360 -->
+        <arg name="lidar_type" value="os128"/>
+        <!-- <arg name="lidar_type" value="avia"/> -->
+        <!-- <arg name="lidar_type" value="mid360"/> -->
+        <!-- end change this -->
+        <arg name="init_x_" value="$(arg init_x_2)"/>
+        <arg name="init_y_" value="$(arg init_y_2)"/>
+        <arg name="init_z_" value="$(arg init_z_2)"/>
+        <arg name="init_yaw" value="$(arg init_yaw_2)"/>
+        <arg name="map_name_" value="$(arg map_name)"/>
+        <arg name="downsample_resolution_" value="$(arg downsample_resolution)"/>
+        <arg name="odom_topic" value="$(arg odom_topic)"/>
+        <arg name="use_gpu" value="$(arg use_gpu_)"/>
+        <arg name="use_uav_extra_model_" value="$(arg use_uav_extra_model)"/>
+    </include>
+
+    <include file="$(find test_interface)/launch/single_drone_refactored.xml" if="$(eval drone_num > 3)">
+        <arg name="drone_id" value="3"/>
+        <arg name="uav_num_" value="$(arg drone_num)"/>
+        <!-- change this -->
+        <!-- possible lidar types: os128, avia, mid360 -->
+        <arg name="lidar_type" value="os128"/>
+        <!-- <arg name="lidar_type" value="avia"/> -->
+        <!-- <arg name="lidar_type" value="mid360"/> -->
+        <!-- end change this -->
+        <arg name="init_x_" value="$(arg init_x_3)"/>
+        <arg name="init_y_" value="$(arg init_y_3)"/>
+        <arg name="init_z_" value="$(arg init_z_3)"/>
+        <arg name="init_yaw" value="$(arg init_yaw_3)"/>
+        <arg name="map_name_" value="$(arg map_name)"/>
+        <arg name="downsample_resolution_" value="$(arg downsample_resolution)"/>
+        <arg name="odom_topic" value="$(arg odom_topic)"/>
+        <arg name="use_gpu" value="$(arg use_gpu_)"/>
+        <arg name="use_uav_extra_model_" value="$(arg use_uav_extra_model)"/>
+    </include>
+
+    <include file="$(find test_interface)/launch/single_drone_refactored.xml" if="$(eval drone_num > 4)">
+        <arg name="drone_id" value="4"/>
+        <arg name="uav_num_" value="$(arg drone_num)"/>
+        <!-- change this -->
+        <!-- possible lidar types: os128, avia, mid360 -->
+        <arg name="lidar_type" value="os128"/>
+        <!-- <arg name="lidar_type" value="avia"/> -->
+        <!-- <arg name="lidar_type" value="mid360"/> -->
+        <!-- end change this -->
+        <arg name="init_x_" value="$(arg init_x_4)"/>
+        <arg name="init_y_" value="$(arg init_y_4)"/>
+        <arg name="init_z_" value="$(arg init_z_4)"/>
+        <arg name="init_yaw" value="$(arg init_yaw_4)"/>
+        <arg name="map_name_" value="$(arg map_name)"/>
+        <arg name="downsample_resolution_" value="$(arg downsample_resolution)"/>
+        <arg name="odom_topic" value="$(arg odom_topic)"/>
+        <arg name="use_gpu" value="$(arg use_gpu_)"/>
+        <arg name="use_uav_extra_model_" value="$(arg use_uav_extra_model)"/>
+    </include>
+
+    <include file="$(find test_interface)/launch/single_drone_refactored.xml" if="$(eval drone_num > 5)">
+        <arg name="drone_id" value="5"/>
+        <arg name="uav_num_" value="$(arg drone_num)"/>
+        <!-- change this -->
+        <!-- possible lidar types: os128, avia, mid360 -->
+        <arg name="lidar_type" value="os128"/>
+        <!-- <arg name="lidar_type" value="avia"/> -->
+        <!-- <arg name="lidar_type" value="mid360"/> -->
+        <!-- end change this -->
+        <arg name="init_x_" value="$(arg init_x_5)"/>
+        <arg name="init_y_" value="$(arg init_y_5)"/>
+        <arg name="init_z_" value="$(arg init_z_5)"/>
+        <arg name="init_yaw" value="$(arg init_yaw_5)"/>
+        <arg name="map_name_" value="$(arg map_name)"/>
+        <arg name="downsample_resolution_" value="$(arg downsample_resolution)"/>
+        <arg name="odom_topic" value="$(arg odom_topic)"/>
+        <arg name="use_gpu" value="$(arg use_gpu_)"/>
+        <arg name="use_uav_extra_model_" value="$(arg use_uav_extra_model)"/>
+    </include>
+
+    <include file="$(find test_interface)/launch/single_drone_refactored.xml" if="$(eval drone_num > 6)">
+        <arg name="drone_id" value="6"/>
+        <arg name="uav_num_" value="$(arg drone_num)"/>
+        <!-- change this -->
+        <!-- possible lidar types: os128, avia, mid360 -->
+        <arg name="lidar_type" value="os128"/>
+        <!-- <arg name="lidar_type" value="avia"/> -->
+        <!-- <arg name="lidar_type" value="mid360"/> -->
+        <!-- end change this -->
+        <arg name="init_x_" value="$(arg init_x_6)"/>
+        <arg name="init_y_" value="$(arg init_y_6)"/>
+        <arg name="init_z_" value="$(arg init_z_6)"/>
+        <arg name="init_yaw" value="$(arg init_yaw_6)"/>
+        <arg name="map_name_" value="$(arg map_name)"/>
+        <arg name="downsample_resolution_" value="$(arg downsample_resolution)"/>
+        <arg name="odom_topic" value="$(arg odom_topic)"/>
+        <arg name="use_gpu" value="$(arg use_gpu_)"/>
+        <arg name="use_uav_extra_model_" value="$(arg use_uav_extra_model)"/>
+    </include>
+
+    <include file="$(find test_interface)/launch/single_drone_refactored.xml" if="$(eval drone_num > 7)">
+        <arg name="drone_id" value="7"/>
+        <arg name="uav_num_" value="$(arg drone_num)"/>
+        <!-- change this -->
+        <!-- possible lidar types: os128, avia, mid360 -->
+        <arg name="lidar_type" value="os128"/>
+        <!-- <arg name="lidar_type" value="avia"/> -->
+        <!-- <arg name="lidar_type" value="mid360"/> -->
+        <!-- end change this -->
+        <arg name="init_x_" value="$(arg init_x_7)"/>
+        <arg name="init_y_" value="$(arg init_y_7)"/>
+        <arg name="init_z_" value="$(arg init_z_7)"/>
+        <arg name="init_yaw" value="$(arg init_yaw_7)"/>
+        <arg name="map_name_" value="$(arg map_name)"/>
+        <arg name="downsample_resolution_" value="$(arg downsample_resolution)"/>
+        <arg name="odom_topic" value="$(arg odom_topic)"/>
+        <arg name="use_gpu" value="$(arg use_gpu_)"/>
+        <arg name="use_uav_extra_model_" value="$(arg use_uav_extra_model)"/>
+    </include>
+
+   <node name="rvizvisualisation" pkg="rviz" type="rviz" output="screen"
+   args="-d $(find test_interface)/config/traj.rviz" />
+
+</launch>
