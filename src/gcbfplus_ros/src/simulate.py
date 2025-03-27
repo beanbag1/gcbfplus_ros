@@ -1,8 +1,3 @@
-# import sys
-# sys.path.append('/root/ros_ws/src/gcbfplus_ros/src')
-# sys.path.insert(0, '/usr/lib/python3.10')
-# print(sys.path)
-
 import argparse
 import datetime
 import functools as ft
@@ -25,7 +20,7 @@ from gcbfplus.utils.utils import jax_jit_np, tree_index, chunk_vmap, merge01, ja
 
 import rospy
 import globals
-from ros_interface import init_ros_interface, send_control
+from ros_interface import init_ros_interface, send_control, get_data
 import open3d as o3d
 
 
@@ -150,98 +145,58 @@ def simulate(args):
     
     test_key = jr.PRNGKey(args.seed)
 
-    factor = 8
+    factor = 10
     # anyhow choose a number that seems to work
 
-    goal = globals.goal
+    lidar_data, odom_data, vel_data, goal = get_data()
     goal = goal/factor
-    states = globals.odom_data
 
     # placeholder obstacles so that the function can run
     obstacle_info = [jr.uniform(test_key, (0, 2)), jnp.array([]), jnp.array([]), jnp.array([]), jnp.array([])]
     obstacles = env.create_obstacles(obstacle_info[0], obstacle_info[1], obstacle_info[2], obstacle_info[3])
     # obstacles = env.create_obstacles(obstacle_info[0], obstacle_info[1])
 
-    # vis = o3d.visualization.Visualizer()
-    # vis.create_window()
-    # point_cloud = o3d.geometry.PointCloud()
-    # first_geom = True
-
     while not rospy.is_shutdown():
-        globals.start_time = rospy.get_time()
-        start_time = rospy.get_time()
-        while not globals.lidar_lock: 
-            rospy.sleep(0.005)
-        time_elapsed = (rospy.get_time() - start_time)*1000
-        # print(f"time elapsed: {time_elapsed}ms")
-        globals.lidar_data = np2jax(globals.new_lidar_data[:, :2])
-        lidar_data = globals.lidar_data/factor
-        lol = globals.new_lidar_data
-        # print(globals.lidar_data)
-        globals.num_rays = len(globals.lidar_data)
-        # print(globals.num_rays)
+        try: 
+            start_time = rospy.get_time()
+            
+            lidar_data, odom_data, vel_data, goal = get_data()
 
-        goal = globals.goal
-        goal = goal/factor
-        odom_data = globals.odom_data/factor
-        vel_data = globals.vel_data/factor
-        states = jnp.concatenate([odom_data[:, :2], vel_data[:, :2]], axis = -1)
-        print(f"states: {states}")
-        env.n_rays = globals.num_rays
-        env.env_states = env.EnvState(states, goal, obstacles)
+            lidar_data = np2jax(lidar_data[:, :2])/factor
+            num_rays = int(len(lidar_data)/num_agents)
+            goal = goal/factor
+            odom_data = odom_data/factor
+            vel_data = vel_data/factor
+            states = jnp.concatenate([odom_data[:, :2], vel_data[:, :2]], axis = -1)
+            print(f"states: {states*factor}")
+            env.n_rays = num_rays
+            env.env_states = env.EnvState(states, goal, obstacles)
+            
+            # apply control
+            graph = jit_graph(env.env_states, lidar_data)
+            # graph = env.get_graph(env.env_states, lidar_data)
 
-        time_elapsed = (rospy.get_time() - start_time)*1000
-        # print(f"time elapsed: {time_elapsed}ms")
-        
-        # apply control
-        graph = jit_graph(env.env_states, lidar_data)
-        # graph = env.get_graph(env.env_states, globals.lidar_data)
+            action = jax2np(jit_body(graph))
+            action = env.agent_accel(action)
+            # action = algo.act(graph)
 
-        time_elapsed = (rospy.get_time() - start_time)*1000
-        # print(f"time elapsed: {time_elapsed}ms")
+            print(f"action: {action}")
+            time_elapsed = (rospy.get_time() - start_time)*1000
+            print(f"FINAL time elapsed: {time_elapsed}ms")
 
-        action = jax2np(jit_body(graph))
-        action = env.agent_accel(action)
-        # action = algo.act(graph)
+            for id in range(num_agents):
+                send_control(action[id], odom_data[id], vel_data[id], time_elapsed/1000, factor, id)
 
-        print(f"action: {action}")
-        # globals.control_vector = action[0]
-        globals.lidar_lock = False
-        time_elapsed = (rospy.get_time() - start_time)*1000
-        print(f"FINAL time elapsed: {time_elapsed}ms")
-
-        send_control(action[0], vel_data[0], time_elapsed/1000)
-
-        error = goal[:, :2] - odom_data[:, :2]
-        dist = np.sqrt(error[:, 0]**2 + error[:, 1]**2)
-        if dist < 0.1:
-            print("goal reached")
-
-        # rm_list = np.empty(1, dtype=int)
-        # for i in range(len(lol)):
-        #     temp = lol[i]
-        #     dist = np.sqrt(temp[0]**2 + temp[1]**2)
-        #     if dist > 3.0:
-        #         rm_list = np.append(rm_list, i)
-        # rm_list = np.delete(rm_list, 0)
-        # lol = np.delete(lol, rm_list)
-
-        # point_cloud.points = o3d.utility.Vector3dVector(np.append(lol, globals.odom_data, axis=0))
-        # # point_cloud.points = o3d.utility.Vector3dVector(graph.edges[:, :3])
-        # if first_geom:
-        #     vis.add_geometry(point_cloud)
-        #     first_geom = False
-        # else:
-        #     vis.remove_geometry(point_cloud)
-        #     vis.add_geometry(point_cloud)
-        # vis.poll_events()
-        # vis.update_renderer()
+            # error = goal[:, :2] - odom_data[:, :2]
+            # dist = np.sqrt(error[:, 0]**2 + error[:, 1]**2)
+            # if dist < 0.1:
+            #     print("goal reached")
+        except:
+            rospy.logwarn("die")
 
 
 
 def main():
-    init_ros_interface()
-
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--num-agents", type=int, default=1)
     parser.add_argument("--obs", type=int, default=0)
@@ -268,6 +223,7 @@ def main():
     parser.add_argument("--dpi", type=int, default=100)
 
     args = parser.parse_args()
+    init_ros_interface(args.num_agents)
     simulate(args)
 
     rospy.spin()

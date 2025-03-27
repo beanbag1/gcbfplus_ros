@@ -22,3 +22,5 @@ ipdb>=0.13.13
 colour>=0.1.5
 control>=0.9.4
 jaxproxqp @ git+https://github.com/oswinso/jaxproxqp.git
+point-cloud-utils
+empy==3.3.4

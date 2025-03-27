@@ -11,7 +11,6 @@ from jax.lax import while_loop
 from ..utils.typing import Array, Radius, BoolScalar, Pos, State, Action, PRNGKey
 from ..utils.utils import merge01
 from .obstacle import Obstacle, Rectangle, Cuboid, Sphere
-import globals
 
 
 def RK4_step(x_dot_fn: Callable, x: State, u: Action, dt: float) -> Array:

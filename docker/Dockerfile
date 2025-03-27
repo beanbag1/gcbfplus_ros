@@ -75,37 +75,33 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
 # ENV PATH="/opt/conda/envs/env/bin:$PATH"
 # SHELL ["/bin/bash", "--login", "-c"]
 
-RUN pip install -U "jax[cuda12]"
-RUN pip install flax>=0.7.2 \
-  jax>=0.4.14 \
-  jraph>=0.0.6.dev0 \
-  jaxtyping>=0.2.21 \
-  numpy>=1.25.0 \
-  einops>=0.6.1 \
-  matplotlib>=3.7.2 \
-  opencv-python>=4.8.0.76 \
-  tqdm>=4.66.1 \
-  tensorflow-probability>=0.21.0 \
-  optax>=0.1.7 \
-  scipy>=1.11.2 \
-  wandb>=0.15.8 \
-  pyyaml>=6.0.1 \
-  orbax_checkpoint>=0.3.5 \
-  seaborn>=0.12.2 \
-  equinox>=0.11.0 \
-  loguru>=0.7.2 \
-  attrs>=23.1.0 \
-  rich>=13.5.3 \
-  ipdb==0.13.13 \
-  colour>=0.1.5 \
-  control>=0.9.4
+RUN pip install --no-cache-dir "jax[cuda12]"
+# RUN pip install flax>=0.7.2 \
+#   jax>=0.4.14 \
+#   jraph>=0.0.6.dev0 \
+#   jaxtyping>=0.2.21 \
+#   numpy>=1.25.0 \
+#   einops>=0.6.1 \
+#   matplotlib>=3.7.2 \
+#   opencv-python>=4.8.0.76 \
+#   tqdm>=4.66.1 \
+#   tensorflow-probability>=0.21.0 \
+#   optax>=0.1.7 \
+#   scipy>=1.11.2 \
+#   wandb>=0.15.8 \
+#   pyyaml>=6.0.1 \
+#   orbax_checkpoint>=0.3.5 \
+#   seaborn>=0.12.2 \
+#   equinox>=0.11.0 \
+#   loguru>=0.7.2 \
+#   attrs>=23.1.0 \
+#   rich>=13.5.3 \
+#   ipdb==0.13.13 \
+#   colour>=0.1.5 \
+#   control>=0.9.4
 
-RUN pip install git+https://github.com/oswinso/jaxproxqp.git 
-
-RUN pip uninstall em
-RUN pip install empy==3.3.4
-
-RUN pip install point-cloud-utils
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt 
 
 # RUN pip install -e
 

@@ -38,7 +38,7 @@ class DoubleIntegrator(MultiAgentEnv):
         "n_rays": 32,
         "obs_len_range": [0.1, 0.5],
         "n_obs": 8,
-        "m": 0.1,  # mass
+        "m": 1.9,  # mass
     }
 
     def __init__(
