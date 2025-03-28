@@ -35,8 +35,11 @@ Collection of rosbags is currently disabled, and can be enabled at line 60 of ``
 To end the run, users must manually ```ctrl-c``` to kill all processes. \
 \
 Currently, it is configured to perform a 4 drone position swap, on the ```racing-mid``` map, as shown in the video.
-To change the waypoints of each drone or the map, edit ```/marsim/docker/config.sh```.
+To change the waypoints of each drone or the map, edit ```/marsim/docker/config.sh```. 
 
 ## Known issues
 Sometimes the algo-container will get stuck. This can be confirmed when there is no output from the algo-container in the console after the sim-container has begun printing collison check timestamps. In this case, simply kill processes and retry. \
-the developer also possesses significant skill issue :( 
+\
+If you wish to train the model, please clone the [original repoisitory](https://github.com/MIT-REALM/gcbfplus/), and follow their instructions there. This repository has breaking changes made to the training method, and training does not work here. \
+\
+This is currently only configured to work in the DoubleIntegrator environment. To test other environments, please replace the output of the ```get_lidar_vmap``` function in the respective ```env.get_graph()``` with the obtained LIDAR data from the simulator, as is done currently in ```/gcbfplus_ros/src/gcbfplus_ros/src/gcbfplus/env/double_integrator.py```.
